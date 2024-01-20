@@ -1,0 +1,69 @@
+{
+	"name": "df_selectLimitedCols",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "1_DS_ADLS_Customers",
+						"type": "DatasetReference"
+					},
+					"name": "sourceADLSCustomers"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "1_DS_ASQL_Customer",
+						"type": "DatasetReference"
+					},
+					"name": "sinkASQLCustomer"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectLimitedColumns"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CustomerId as string,",
+				"          FirstName as string,",
+				"          LastName as string,",
+				"          BirthDate as string,",
+				"          Gender as string,",
+				"          EmailAddress as string,",
+				"          YearlyIncome as string,",
+				"          HouseOwner as string,",
+				"          TotalChildren as string,",
+				"          Geography as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> sourceADLSCustomers",
+				"sourceADLSCustomers select(mapColumn(",
+				"          CustomerId,",
+				"          FirstName,",
+				"          LastName,",
+				"          BirthDate,",
+				"          Gender,",
+				"          EmailAddress,",
+				"          GeographyId = Geography",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectLimitedColumns",
+				"selectLimitedColumns sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sinkASQLCustomer"
+			]
+		}
+	}
+}

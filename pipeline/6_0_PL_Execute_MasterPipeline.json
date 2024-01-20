@@ -1,0 +1,49 @@
+{
+	"name": "6_0_PL_Execute_MasterPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Execute 3_2_PL_StoredProcedure",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "3_2_PL_StoredProcedure",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute 5_0_PL Dataflow_Join",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute 3_2_PL_StoredProcedure",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "5_0_PL_DataFlow_Join",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2024-01-19T10:23:05Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

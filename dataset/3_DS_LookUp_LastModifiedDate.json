@@ -1,0 +1,25 @@
+{
+	"name": "3_DS_LookUp_LastModifiedDate",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_AdventureWorks_LastModifiedDate",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "customer_lastmodified.csv",
+				"folderPath": "raw_input/lastmodified",
+				"fileSystem": "adventureworks"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

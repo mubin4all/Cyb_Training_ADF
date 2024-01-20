@@ -1,0 +1,58 @@
+{
+	"name": "4_3_DS_ADLS_Geography",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_AdventureWorks_CybTrainingPrac",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "Geography.csv",
+				"folderPath": "raw_input/geography",
+				"fileSystem": "adventureworks"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "GeographyKey",
+				"type": "String"
+			},
+			{
+				"name": "City",
+				"type": "String"
+			},
+			{
+				"name": "StateProvinceCode",
+				"type": "String"
+			},
+			{
+				"name": "StateProvinceName",
+				"type": "String"
+			},
+			{
+				"name": "CountryRegionCode",
+				"type": "String"
+			},
+			{
+				"name": "EnglishCountryRegionName",
+				"type": "String"
+			},
+			{
+				"name": "PostalCode",
+				"type": "String"
+			},
+			{
+				"name": "IpAddressLocator",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

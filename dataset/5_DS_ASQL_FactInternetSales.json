@@ -1,0 +1,17 @@
+{
+	"name": "5_DS_ASQL_FactInternetSales",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ASQLDB_CYB_Training_Practice",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "",
+			"table": "FactInternetSales"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,131 @@
+{
+	"name": "df_Join_SelectLimitedCols",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_ADLS_FACTINTERNETSALES",
+						"type": "DatasetReference"
+					},
+					"name": "sourceADLSFactInternetSales"
+				},
+				{
+					"dataset": {
+						"referenceName": "1_DS_ADLS_Customers",
+						"type": "DatasetReference"
+					},
+					"name": "sourceADLSCustomer"
+				},
+				{
+					"dataset": {
+						"referenceName": "4_3_DS_ADLS_Geography",
+						"type": "DatasetReference"
+					},
+					"name": "sourceADLSGeography"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "5_DS_ASQL_FactInternetSales",
+						"type": "DatasetReference"
+					},
+					"name": "sinkASQLFactInternetSales"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectLimitedColumns"
+				},
+				{
+					"name": "joinCustomer"
+				},
+				{
+					"name": "joinGeography"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          ProductId as string,",
+				"          CustomerId as string,",
+				"          GeographyId as string,",
+				"          SalesOrderNumber as string,",
+				"          OrderQuantity as string,",
+				"          SalesAmount as string,",
+				"          TaxAmt as string,",
+				"          Freight as string,",
+				"          OrderDate as string,",
+				"          DueDate as string,",
+				"          ShipDate as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> sourceADLSFactInternetSales",
+				"source(output(",
+				"          CustomerId as string,",
+				"          FirstName as string,",
+				"          LastName as string,",
+				"          BirthDate as string,",
+				"          Gender as string,",
+				"          EmailAddress as string,",
+				"          YearlyIncome as string,",
+				"          HouseOwner as string,",
+				"          TotalChildren as string,",
+				"          Geography as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> sourceADLSCustomer",
+				"source(output(",
+				"          GeographyKey as string,",
+				"          City as string,",
+				"          StateProvinceCode as string,",
+				"          StateProvinceName as string,",
+				"          CountryRegionCode as string,",
+				"          EnglishCountryRegionName as string,",
+				"          PostalCode as string,",
+				"          IpAddressLocator as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> sourceADLSGeography",
+				"joinGeography select(mapColumn(",
+				"          CustomerId = sourceADLSFactInternetSales@CustomerId,",
+				"          FirstName,",
+				"          LastName,",
+				"          BirthDate,",
+				"          Gender,",
+				"          EmailAddress,",
+				"          GeographyId = Geography,",
+				"          FirstName,",
+				"          LastName,",
+				"          EnglishCountryRegionName",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectLimitedColumns",
+				"sourceADLSFactInternetSales, sourceADLSCustomer join(sourceADLSFactInternetSales@CustomerId == sourceADLSCustomer@CustomerId,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinCustomer",
+				"joinCustomer, sourceADLSGeography join(GeographyId == GeographyKey,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinGeography",
+				"selectLimitedColumns sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sinkASQLFactInternetSales"
+			]
+		}
+	}
+}

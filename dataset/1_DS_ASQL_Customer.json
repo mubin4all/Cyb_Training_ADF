@@ -1,0 +1,17 @@
+{
+	"name": "1_DS_ASQL_Customer",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ASQLDB_CYB_Training_Practice",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "",
+			"table": "Customer"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

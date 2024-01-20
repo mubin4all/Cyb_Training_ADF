@@ -1,0 +1,106 @@
+{
+	"name": "df_sel_drc_csp_All",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "1_DS_ADLS_Customers",
+						"type": "DatasetReference"
+					},
+					"name": "sourceADLSCustomers"
+				},
+				{
+					"dataset": {
+						"referenceName": "4_3_DS_ADLS_Geography",
+						"type": "DatasetReference"
+					},
+					"name": "ADLSGeography"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "1_DS_ASQL_Customer",
+						"type": "DatasetReference"
+					},
+					"name": "sinkASQLCustomer"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectLimitedColumns"
+				},
+				{
+					"name": "derivedColumnFullName"
+				},
+				{
+					"name": "splitMaleandFemaleRecords"
+				},
+				{
+					"name": "lookupGeography"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CustomerId as string,",
+				"          FirstName as string,",
+				"          LastName as string,",
+				"          BirthDate as string,",
+				"          Gender as string,",
+				"          EmailAddress as string,",
+				"          YearlyIncome as string,",
+				"          HouseOwner as string,",
+				"          TotalChildren as string,",
+				"          Geography as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> sourceADLSCustomers",
+				"source(output(",
+				"          GeographyKey as string,",
+				"          City as string,",
+				"          StateProvinceCode as string,",
+				"          StateProvinceName as string,",
+				"          CountryRegionCode as string,",
+				"          EnglishCountryRegionName as string,",
+				"          PostalCode as string,",
+				"          IpAddressLocator as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> ADLSGeography",
+				"lookupGeography select(mapColumn(",
+				"          CustomerId,",
+				"          FirstName,",
+				"          LastName,",
+				"          BirthDate,",
+				"          Gender,",
+				"          EmailAddress,",
+				"          GeographyId = Geography,",
+				"          CountryRegionName = EnglishCountryRegionName",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectLimitedColumns",
+				"selectLimitedColumns derive(FullName = concatWS(' ',FirstName,LastName)) ~> derivedColumnFullName",
+				"derivedColumnFullName split(equals(Gender, 'M'),",
+				"     disjoint: false) ~> splitMaleandFemaleRecords@(CSPOutMaleStream, CSPOutputOthers)",
+				"sourceADLSCustomers, ADLSGeography lookup(Geography == GeographyKey,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookupGeography",
+				"splitMaleandFemaleRecords@CSPOutMaleStream sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sinkASQLCustomer"
+			]
+		}
+	}
+}

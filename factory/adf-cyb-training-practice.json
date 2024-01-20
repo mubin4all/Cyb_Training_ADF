@@ -1,0 +1,9 @@
+{
+	"name": "adf-cyb-training-practice",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "c75398bf-65a0-484f-8365-83117654fdfd",
+		"tenantId": "37709cfb-f3b2-4648-aea1-9c828a886147"
+	}
+}
