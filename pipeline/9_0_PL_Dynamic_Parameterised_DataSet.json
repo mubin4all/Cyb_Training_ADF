@@ -30,7 +30,6 @@
 						"type": "AzureSqlSink",
 						"writeBehavior": "insert",
 						"sqlWriterUseTableLock": false,
-						"tableOption": "autoCreate",
 						"disableMetricsCollection": false
 					},
 					"enableStaging": false,
@@ -54,8 +53,11 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "8_DS_ASQL_OUTPUT_Cars",
-						"type": "DatasetReference"
+						"referenceName": "9_0_DS_ASQL_Dynamic_Parameterise_Output",
+						"type": "DatasetReference",
+						"parameters": {
+							"Table_Name": "cars"
+						}
 					}
 				]
 			}
