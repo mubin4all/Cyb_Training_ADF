@@ -62,6 +62,14 @@
 				]
 			}
 		],
+		"parameters": {
+			"PL_FilesName": {
+				"type": "string"
+			},
+			"PL_TableName": {
+				"type": "string"
+			}
+		},
 		"annotations": []
 	}
 }
