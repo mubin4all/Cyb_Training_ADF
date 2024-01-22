@@ -1,6 +1,7 @@
 {
 	"name": "8_0_PL_Static_PipeLine",
 	"properties": {
+		"description": "run activity in parallel , we need to create multiple copy activities with this static method if it is 100 or 1000 then?",
 		"activities": [
 			{
 				"name": "Copy Cars Data",
