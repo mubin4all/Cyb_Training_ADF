@@ -1,0 +1,67 @@
+{
+	"name": "9_1_PL_Dynamic_Parameterised_PipeLine_DS",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy the Data use Para",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "D9_0_DS_ADLS_Parametrised_Input",
+						"type": "DatasetReference",
+						"parameters": {
+							"File_Name": "planes.csv"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "D9_0_DS_ASQL_Dynamic_Parameterise_Output",
+						"type": "DatasetReference",
+						"parameters": {
+							"Table_Name": "plane"
+						}
+					}
+				]
+			}
+		],
+		"annotations": []
+	}
+}
