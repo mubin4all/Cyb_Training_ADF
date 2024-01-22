@@ -47,7 +47,10 @@
 						"referenceName": "D9_0_DS_ADLS_Parametrised_Input",
 						"type": "DatasetReference",
 						"parameters": {
-							"File_Name": "planes.csv"
+							"File_Name": {
+								"value": "@pipeline().parameters.PL_FilesName",
+								"type": "Expression"
+							}
 						}
 					}
 				],
@@ -56,7 +59,10 @@
 						"referenceName": "D9_0_DS_ASQL_Dynamic_Parameterise_Output",
 						"type": "DatasetReference",
 						"parameters": {
-							"Table_Name": "plane"
+							"Table_Name": {
+								"value": "@pipeline().parameters.PL_TableName",
+								"type": "Expression"
+							}
 						}
 					}
 				]
