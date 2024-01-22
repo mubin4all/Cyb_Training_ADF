@@ -1,6 +1,7 @@
 {
 	"name": "7_0_Activcity_Dependency",
 	"properties": {
+		"description": "using variable and supply value which can make wait activity fail for 0 sec, and run it for >0 value",
 		"activities": [
 			{
 				"name": "WaitA",
