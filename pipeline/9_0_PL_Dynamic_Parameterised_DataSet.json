@@ -45,8 +45,11 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "8_DS_ADLS_INPUT_Cars",
-						"type": "DatasetReference"
+						"referenceName": "9_0_DS_Dynamic_Parametrised_Input",
+						"type": "DatasetReference",
+						"parameters": {
+							"File_Name": "cars.csv"
+						}
 					}
 				],
 				"outputs": [
