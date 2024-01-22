@@ -1,0 +1,23 @@
+{
+	"name": "9_DS_ASQL_Dynamic_Parameterise_Output",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ASQLDB_CYB_Training_Practice",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Table_Name": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"table": {
+				"value": "@dataset().Table_Name",
+				"type": "Expression"
+			}
+		}
+	}
+}
