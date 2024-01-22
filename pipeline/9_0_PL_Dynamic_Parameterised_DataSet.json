@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy Cars Data",
+				"name": "Copy the Data use Para",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
@@ -47,7 +47,7 @@
 						"referenceName": "D9_0_DS_Dynamic_Parametrised_Input",
 						"type": "DatasetReference",
 						"parameters": {
-							"File_Name": "cars.csv"
+							"File_Name": "planes.csv"
 						}
 					}
 				],
@@ -56,7 +56,7 @@
 						"referenceName": "D9_0_DS_ASQL_Dynamic_Parameterise_Output",
 						"type": "DatasetReference",
 						"parameters": {
-							"Table_Name": "cars"
+							"Table_Name": "plane"
 						}
 					}
 				]
