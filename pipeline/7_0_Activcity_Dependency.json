@@ -8,7 +8,10 @@
 				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
-					"waitTimeInSeconds": 0
+					"waitTimeInSeconds": {
+						"value": "@variables('RunTimeInSec')",
+						"type": "Expression"
+					}
 				}
 			},
 			{
@@ -76,6 +79,12 @@
 				}
 			}
 		],
+		"variables": {
+			"RunTimeInSec": {
+				"type": "Integer",
+				"defaultValue": 0
+			}
+		},
 		"annotations": []
 	}
 }
