@@ -1,0 +1,65 @@
+{
+	"name": "7_0_Activcity_Dependency",
+	"properties": {
+		"activities": [
+			{
+				"name": "WaitA",
+				"type": "Wait",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "WaitB",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "WaitA",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "WaitC",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "WaitB",
+						"dependencyConditions": [
+							"Skipped"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "WaitD",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "WaitA",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			}
+		],
+		"annotations": []
+	}
+}
