@@ -44,7 +44,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "D9_0_DS_Dynamic_Parametrised_Input",
+						"referenceName": "D9_0_DS_ADLS_Parametrised_Input",
 						"type": "DatasetReference",
 						"parameters": {
 							"File_Name": "planes.csv"

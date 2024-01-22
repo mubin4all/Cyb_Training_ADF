@@ -1,5 +1,5 @@
 {
-	"name": "D9_0_DS_Dynamic_Parametrised_Input",
+	"name": "D9_0_DS_ADLS_Parametrised_Input",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "LS_ADLS_AdventureWorks_CybTrainingPrac",
