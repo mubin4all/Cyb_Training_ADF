@@ -44,7 +44,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "9_0_DS_Dynamic_Parametrised_Input",
+						"referenceName": "D9_0_DS_Dynamic_Parametrised_Input",
 						"type": "DatasetReference",
 						"parameters": {
 							"File_Name": "cars.csv"
@@ -53,7 +53,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "9_0_DS_ASQL_Dynamic_Parameterise_Output",
+						"referenceName": "D9_0_DS_ASQL_Dynamic_Parameterise_Output",
 						"type": "DatasetReference",
 						"parameters": {
 							"Table_Name": "cars"

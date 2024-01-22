@@ -1,5 +1,5 @@
 {
-	"name": "9_0_DS_ASQL_Dynamic_Parameterise_Output",
+	"name": "D9_0_DS_ASQL_Dynamic_Parameterise_Output",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "LS_ASQLDB_CYB_Training_Practice",
