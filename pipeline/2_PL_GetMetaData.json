@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Get MetadataADLS",
+				"name": "Get MetadataADLS1",
 				"type": "GetMetadata",
 				"dependsOn": [],
 				"policy": {
@@ -38,7 +38,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Get MetadataADLS",
+						"activity": "Get MetadataADLS1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
