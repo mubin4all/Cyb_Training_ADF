@@ -47,7 +47,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Get MetadataADLS').output.childItems",
+						"value": "@activity('Get MetadataADLS1').output.childItems",
 						"type": "Expression"
 					},
 					"activities": [
