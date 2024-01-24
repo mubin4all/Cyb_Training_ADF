@@ -4,7 +4,7 @@
 		"description": "Create FullName while reading customer data from ADLS customer folder",
 		"activities": [
 			{
-				"name": "DFProcessData_DC",
+				"name": "DFProcessData_DC_CSP",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [
 					{
