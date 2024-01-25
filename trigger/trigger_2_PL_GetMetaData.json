@@ -2,7 +2,7 @@
 	"name": "trigger_2_PL_GetMetaData",
 	"properties": {
 		"annotations": [],
-		"runtimeState": "Stopped",
+		"runtimeState": "Started",
 		"pipelines": [
 			{
 				"pipelineReference": {
