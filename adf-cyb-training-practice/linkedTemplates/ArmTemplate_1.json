@@ -1,0 +1,1530 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-cyb-training-practice"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/3_2_PL_StoredProcedure')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "using ASQL SP to drop customer table and then go ahead to load data",
+				"activities": [
+					{
+						"name": "Get MetadataADLS",
+						"type": "GetMetadata",
+						"dependsOn": [
+							{
+								"activity": "SpDropCustomerTable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "1_DS_ADLS_Customers",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems",
+								"lastModified"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEachFile",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get MetadataADLS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get MetadataADLS').output.childItems",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy data to ASQL",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"additionalColumns": [
+												{
+													"name": "FilePath",
+													"value": "$$FILEPATH"
+												}
+											],
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"wildcardFileName": {
+													"value": "@item().name",
+													"type": "Expression"
+												},
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "upsert",
+											"upsertSettings": {
+												"useTempDB": true,
+												"keys": [
+													"CustomerId"
+												]
+											},
+											"sqlWriterUseTableLock": false,
+											"tableOption": "autoCreate",
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "1_DS_ADLS_Customers",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "1_DS_ASQL_Customer",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "SpDropCustomerTable",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_DropCustomerTable]"
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_ASQLDB_CYB_Training_Practice",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-19T05:47:01Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/3_3_PL_LookUp_GetMeta_ForEach')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Using LastModifiedDate stored in control table , fetch files only arrived after that date to load in ASQL table",
+				"activities": [
+					{
+						"name": "Get MetadataADLS",
+						"type": "GetMetadata",
+						"dependsOn": [
+							{
+								"activity": "ReadLastModifiedFromASQLTable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "1_DS_ADLS_Customers",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"lastModified",
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"modifiedDatetimeStart": {
+									"value": "@activity('ReadLastModifiedFromASQLTable').output.firstRow.LastModifiedDate",
+									"type": "Expression"
+								},
+								"modifiedDatetimeEnd": {
+									"value": "@activity('ReadLastModifiedFromASQLTable').output.firstRow.LastModifiedDate",
+									"type": "Expression"
+								},
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEachFile",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get MetadataADLS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get MetadataADLS').output.childItems",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy data to ASQL",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"additionalColumns": [
+												{
+													"name": "FilePath",
+													"value": "$$FILEPATH"
+												}
+											],
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"wildcardFileName": {
+													"value": "@item().name",
+													"type": "Expression"
+												},
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "upsert",
+											"upsertSettings": {
+												"useTempDB": true,
+												"keys": [
+													"CustomerId"
+												]
+											},
+											"sqlWriterUseTableLock": false,
+											"tableOption": "autoCreate",
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "1_DS_ADLS_Customers",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "1_DS_ASQL_Customer",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "ReadLastModifiedFromASQLTable",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderStoredProcedureName": "[[dbo].[usp_GetLastModified]",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "1_DS_ASQL_Customer",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": true
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-19T05:45:40Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/8_0_PL_Static_PipeLine')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "run activity in parallel , we need to create multiple copy activities with this static method if it is 100 or 1000 then?",
+				"activities": [
+					{
+						"name": "Copy Cars Data",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "8_DS_ADLS_INPUT_Cars",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "8_DS_ASQL_OUTPUT_Cars",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy Plane Data",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "8_DS_ADLS_INPUT_Plane",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "8_DS_ASQL_OUTPUT_Plane",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/9_0_PL_Dynamic_Parameterised_DataSet')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy the Data use Para",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "D9_0_DS_ADLS_Parametrised_Input",
+								"type": "DatasetReference",
+								"parameters": {
+									"File_Name": "planes.csv"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "D9_0_DS_ASQL_Dynamic_Parameterise_Output",
+								"type": "DatasetReference",
+								"parameters": {
+									"Table_Name": "plane"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/9_1_PL_Dynamic_Parameterised_PipeLine_Dataset')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy the Data use Para",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "D9_0_DS_ADLS_Parametrised_Input",
+								"type": "DatasetReference",
+								"parameters": {
+									"File_Name": {
+										"value": "@pipeline().parameters.PL_FilesName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "D9_0_DS_ASQL_Dynamic_Parameterise_Output",
+								"type": "DatasetReference",
+								"parameters": {
+									"Table_Name": {
+										"value": "@pipeline().parameters.PL_TableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"PL_FilesName": {
+						"type": "string"
+					},
+					"PL_TableName": {
+						"type": "string"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_Join_SelectLimitedCols')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_ADLS_FACTINTERNETSALES",
+								"type": "DatasetReference"
+							},
+							"name": "sourceADLSFactInternetSales"
+						},
+						{
+							"dataset": {
+								"referenceName": "1_DS_ADLS_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "sourceADLSCustomer"
+						},
+						{
+							"dataset": {
+								"referenceName": "4_3_DS_ADLS_Geography",
+								"type": "DatasetReference"
+							},
+							"name": "sourceADLSGeography"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "5_DS_ASQL_FactInternetSales",
+								"type": "DatasetReference"
+							},
+							"name": "sinkASQLFactInternetSales"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectLimitedColumns"
+						},
+						{
+							"name": "joinCustomer"
+						},
+						{
+							"name": "joinGeography"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          ProductId as string,",
+						"          CustomerId as string,",
+						"          GeographyId as string,",
+						"          SalesOrderNumber as string,",
+						"          OrderQuantity as string,",
+						"          SalesAmount as string,",
+						"          TaxAmt as string,",
+						"          Freight as string,",
+						"          OrderDate as string,",
+						"          DueDate as string,",
+						"          ShipDate as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceADLSFactInternetSales",
+						"source(output(",
+						"          CustomerId as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          BirthDate as string,",
+						"          Gender as string,",
+						"          EmailAddress as string,",
+						"          YearlyIncome as string,",
+						"          HouseOwner as string,",
+						"          TotalChildren as string,",
+						"          Geography as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceADLSCustomer",
+						"source(output(",
+						"          GeographyKey as string,",
+						"          City as string,",
+						"          StateProvinceCode as string,",
+						"          StateProvinceName as string,",
+						"          CountryRegionCode as string,",
+						"          EnglishCountryRegionName as string,",
+						"          PostalCode as string,",
+						"          IpAddressLocator as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceADLSGeography",
+						"joinGeography select(mapColumn(",
+						"          CustomerId = sourceADLSFactInternetSales@CustomerId,",
+						"          FirstName,",
+						"          LastName,",
+						"          BirthDate,",
+						"          Gender,",
+						"          EmailAddress,",
+						"          GeographyId = Geography,",
+						"          FirstName,",
+						"          LastName,",
+						"          EnglishCountryRegionName",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectLimitedColumns",
+						"sourceADLSFactInternetSales, sourceADLSCustomer join(sourceADLSFactInternetSales@CustomerId == sourceADLSCustomer@CustomerId,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinCustomer",
+						"joinCustomer, sourceADLSGeography join(GeographyId == GeographyKey,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinGeography",
+						"selectLimitedColumns sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sinkASQLFactInternetSales"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_Select_DerCol_ConditionalSplit')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "1_DS_ADLS_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "sourceADLSCustomers"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "1_DS_ASQL_Customer",
+								"type": "DatasetReference"
+							},
+							"name": "sinkASQLCustomer"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectLimitedColumns"
+						},
+						{
+							"name": "derivedColumnFullName"
+						},
+						{
+							"name": "splitMaleandFemaleRecords"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerId as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          BirthDate as string,",
+						"          Gender as string,",
+						"          EmailAddress as string,",
+						"          YearlyIncome as string,",
+						"          HouseOwner as string,",
+						"          TotalChildren as string,",
+						"          Geography as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceADLSCustomers",
+						"sourceADLSCustomers select(mapColumn(",
+						"          CustomerId,",
+						"          FirstName,",
+						"          LastName,",
+						"          BirthDate,",
+						"          Gender,",
+						"          EmailAddress,",
+						"          GeographyId = Geography",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectLimitedColumns",
+						"selectLimitedColumns derive(FullName = concatWS(' ',FirstName,LastName)) ~> derivedColumnFullName",
+						"derivedColumnFullName split(equals(Gender, 'M'),",
+						"     equals(Gender, 'F'),",
+						"     disjoint: false) ~> splitMaleandFemaleRecords@(CSPOutMaleStream, CSPOutFeMaleStream, CSPOutputOthers)",
+						"splitMaleandFemaleRecords@CSPOutMaleStream sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sinkASQLCustomer"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_Select_DerivedColumn')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "1_DS_ADLS_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "sourceADLSCustomers"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "1_DS_ASQL_Customer",
+								"type": "DatasetReference"
+							},
+							"name": "sinkASQLCustomer"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectLimitedColumns"
+						},
+						{
+							"name": "derivedColumnFullName"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerId as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          BirthDate as string,",
+						"          Gender as string,",
+						"          EmailAddress as string,",
+						"          YearlyIncome as string,",
+						"          HouseOwner as string,",
+						"          TotalChildren as string,",
+						"          Geography as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceADLSCustomers",
+						"sourceADLSCustomers select(mapColumn(",
+						"          CustomerId,",
+						"          FirstName,",
+						"          LastName,",
+						"          BirthDate,",
+						"          Gender,",
+						"          EmailAddress,",
+						"          GeographyId = Geography",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectLimitedColumns",
+						"selectLimitedColumns derive(FullName = concatWS(' ',FirstName,LastName)) ~> derivedColumnFullName",
+						"derivedColumnFullName sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sinkASQLCustomer"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_sel_drc_csp_All')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "1_DS_ADLS_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "sourceADLSCustomers"
+						},
+						{
+							"dataset": {
+								"referenceName": "4_3_DS_ADLS_Geography",
+								"type": "DatasetReference"
+							},
+							"name": "ADLSGeography"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "1_DS_ASQL_Customer",
+								"type": "DatasetReference"
+							},
+							"name": "sinkASQLCustomer"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectLimitedColumns"
+						},
+						{
+							"name": "derivedColumnFullName"
+						},
+						{
+							"name": "splitMaleandFemaleRecords"
+						},
+						{
+							"name": "lookupGeography"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerId as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          BirthDate as string,",
+						"          Gender as string,",
+						"          EmailAddress as string,",
+						"          YearlyIncome as string,",
+						"          HouseOwner as string,",
+						"          TotalChildren as string,",
+						"          Geography as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceADLSCustomers",
+						"source(output(",
+						"          GeographyKey as string,",
+						"          City as string,",
+						"          StateProvinceCode as string,",
+						"          StateProvinceName as string,",
+						"          CountryRegionCode as string,",
+						"          EnglishCountryRegionName as string,",
+						"          PostalCode as string,",
+						"          IpAddressLocator as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> ADLSGeography",
+						"lookupGeography select(mapColumn(",
+						"          CustomerId,",
+						"          FirstName,",
+						"          LastName,",
+						"          BirthDate,",
+						"          Gender,",
+						"          EmailAddress,",
+						"          GeographyId = Geography,",
+						"          CountryRegionName = EnglishCountryRegionName,",
+						"          City",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectLimitedColumns",
+						"selectLimitedColumns derive(FullName = concatWS(' ',FirstName,LastName)) ~> derivedColumnFullName",
+						"derivedColumnFullName split(equals(Gender, 'M'),",
+						"     disjoint: false) ~> splitMaleandFemaleRecords@(CSPOutMaleStream, CSPOutputOthers)",
+						"sourceADLSCustomers, ADLSGeography lookup(Geography == GeographyKey,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     broadcast: 'auto')~> lookupGeography",
+						"splitMaleandFemaleRecords@CSPOutMaleStream sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sinkASQLCustomer"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_selectLimitedCols')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "1_DS_ADLS_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "sourceADLSCustomers"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "1_DS_ASQL_Customer",
+								"type": "DatasetReference"
+							},
+							"name": "sinkASQLCustomer"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectLimitedColumns"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerId as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          BirthDate as string,",
+						"          Gender as string,",
+						"          EmailAddress as string,",
+						"          YearlyIncome as string,",
+						"          HouseOwner as string,",
+						"          TotalChildren as string,",
+						"          Geography as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceADLSCustomers",
+						"sourceADLSCustomers select(mapColumn(",
+						"          CustomerId,",
+						"          FirstName,",
+						"          LastName,",
+						"          BirthDate,",
+						"          Gender,",
+						"          EmailAddress,",
+						"          GeographyId = Geography",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectLimitedColumns",
+						"selectLimitedColumns sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sinkASQLCustomer"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/4_0_PL_DataFlow_Select')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DFProcessData",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "DropCustomerTableSP",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_selectLimitedCols",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceADLSCustomers": {},
+									"sinkASQLCustomer": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "DropCustomerTableSP",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_DropCustomerTable]"
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_ASQLDB_CYB_Training_Practice",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-19T06:55:02Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_selectLimitedCols')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/4_1_PL_DataFlow_DerivedColumn')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Create FullName while reading customer data from ADLS customer folder",
+				"activities": [
+					{
+						"name": "DFProcessData_DC",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "DropCustomerTableSP",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_Select_DerivedColumn",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceADLSCustomers": {},
+									"sinkASQLCustomer": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "DropCustomerTableSP",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_DropCustomerTable]"
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_ASQLDB_CYB_Training_Practice",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-19T08:35:27Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_Select_DerivedColumn')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/4_2_PL_DataFlow_ConditionalSplit')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Create FullName while reading customer data from ADLS customer folder",
+				"activities": [
+					{
+						"name": "DFProcessData_DC_CSP",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "DropCustomerTableSP",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_Select_DerCol_ConditionalSplit",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceADLSCustomers": {},
+									"sinkASQLCustomer": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "DropCustomerTableSP",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_DropCustomerTable]"
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_ASQLDB_CYB_Training_Practice",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-19T08:39:38Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_Select_DerCol_ConditionalSplit')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/4_3_PL_DataFlow_All')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Create FullName while reading customer data from ADLS customer folder",
+				"activities": [
+					{
+						"name": "DFProcessData_DC",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "DropCustomerTableSP",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_sel_drc_csp_All",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceADLSCustomers": {},
+									"ADLSGeography": {},
+									"sinkASQLCustomer": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "DropCustomerTableSP",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_DropCustomerTable]"
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_ASQLDB_CYB_Training_Practice",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-19T09:29:21Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_sel_drc_csp_All')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/5_0_PL_DataFlow_Join')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DFProcessData",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_Join_SelectLimitedCols",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceADLSFactInternetSales": {},
+									"sourceADLSCustomer": {},
+									"sourceADLSGeography": {},
+									"sinkASQLFactInternetSales": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-19T10:18:07Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_Join_SelectLimitedCols')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/6_0_PL_Execute_MasterPipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Execute 3_2_PL_StoredProcedure",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "3_2_PL_StoredProcedure",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Execute 5_0_PL Dataflow_Join",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Execute 3_2_PL_StoredProcedure",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "5_0_PL_DataFlow_Join",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-19T10:23:05Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/3_2_PL_StoredProcedure')]",
+				"[concat(variables('factoryId'), '/pipelines/5_0_PL_DataFlow_Join')]"
+			]
+		}
+	]
+}
